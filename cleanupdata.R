@@ -1,0 +1,40 @@
+# Getting and Cleaning Data (Assignment) 
+# Jwalant Patel
+cleanupdata <- function(){
+  # load all test data
+  subject_test = read.table("UCI HAR Dataset/test/subject_test.txt")
+  X_test = read.table("UCI HAR Dataset/test/X_test.txt")
+  Y_test = read.table("UCI HAR Dataset/test/Y_test.txt")
+  
+  # load all training data
+  subject_train = read.table("UCI HAR Dataset/train/subject_train.txt")
+  X_train = read.table("UCI HAR Dataset/train/X_train.txt")
+  Y_train = read.table("UCI HAR Dataset/train/Y_train.txt")
+  
+  # load lookup information
+  features <- read.table("UCI HAR Dataset/features.txt", col.names=c("featureId", "featureLabel"))
+  activities <- read.table("UCI HAR Dataset/activity_labels.txt", col.names=c("activityId", "activityLabel"))
+  ##replace Labels
+  activities$activityLabel <- gsub("_", "", as.character(activities$activityLabel))
+  includedFeatures <- grep("-mean\\(\\)|-std\\(\\)", features$featureLabel)
+  
+  # This is where the data is merged
+  subject <- rbind(subject_test, subject_train)
+  names(subject) <- "subjectId"
+  X <- rbind(X_test, X_train)
+  X <- X[, includedFeatures]
+  names(X) <- gsub("\\(|\\)", "", features$featureLabel[includedFeatures])
+  Y <- rbind(Y_test, Y_train)
+  names(Y) = "activityId"
+  activity <- merge(Y, activities, by="activityId")$activityLabel
+  
+  # Merge the data columns to create a massive table here
+  data <- cbind(subject, X, activity)
+  write.table(data, "mergeddata.txt")
+  
+  #create a dataset grouped by subject and activity after applying standard deviation and average calculations
+  library(data.table)
+  dataDT <- data.table(data)
+  calculatedData<- dataDT[, lapply(.SD, mean), by=c("subjectId", "activity")]
+  write.table(calculatedData, "cleandata.txt")
+}
